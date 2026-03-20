@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	resultPattern      = regexp.MustCompile(`id="snippet-synopsis">(\n.*){12}`)
+	resultPattern      = regexp.MustCompile(`"SearchSnippet"(.*\n){35}`)
 	uriPattern         = regexp.MustCompile(`<a href="/(.*)\?`)
 	descriptionPattern = regexp.MustCompile(`>\n(.*)\n.*</p>`)
 	versionPattern     = regexp.MustCompile(`<strong>(.*)</strong> `)
@@ -89,18 +89,28 @@ func (p *parser) Parse(r io.Reader) (models.Result, error) {
 	}
 
 	text := resultPattern.Find([]byte(b[searchStart:]))
-
-	return models.Result{
+	descriptionData := descriptionPattern.FindAllSubmatch(text, 1)
+	var description string
+	if len(descriptionData) == 0 {
+		description = ""
+	} else {
+		description = strings.TrimSpace(string(descriptionData[0][1]))
+	}
+	res := models.Result{
 		ImportPath: string(uriPattern.FindAllSubmatch(text, 1)[0][1]),
-		Synopsis:   strings.TrimSpace(string(descriptionPattern.FindAllSubmatch(text, 1)[0][1])),
+		Synopsis:   description,
 		Version:    string(versionPattern.FindAllSubmatch(text, 1)[0][1]),
-	}, nil
+	}
+	return res, nil
 }
 
 func (p *parser) Print(result models.Result) {
 	fmt.Println(result.ImportPath)
 	fmt.Printf("  Last Version: %s\n", result.Version)
-	fmt.Printf("  Synopsis: %s\n", result.Synopsis)
+
+	if result.Synopsis != "" {
+		fmt.Printf("  Synopsis: %s\n", result.Synopsis)
+	}
 
 	if strings.Contains(result.Version, "...") {
 		fmt.Printf("  Download: go get %s\n", result.ImportPath)
