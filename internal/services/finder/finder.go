@@ -89,6 +89,7 @@ func (p *parser) Parse(r io.Reader) (models.Result, error) {
 	}
 
 	text := resultPattern.Find([]byte(b[searchStart:]))
+
 	return models.Result{
 		ImportPath: string(uriPattern.FindAllSubmatch(text, 1)[0][1]),
 		Synopsis:   strings.TrimSpace(string(descriptionPattern.FindAllSubmatch(text, 1)[0][1])),
@@ -100,5 +101,10 @@ func (p *parser) Print(result models.Result) {
 	fmt.Println(result.ImportPath)
 	fmt.Printf("  Last Version: %s\n", result.Version)
 	fmt.Printf("  Synopsis: %s\n", result.Synopsis)
-	fmt.Printf("  Download: go get %s@%s\n", result.ImportPath, result.Version)
+
+	if strings.Contains(result.Version, "...") {
+		fmt.Printf("  Download: go get %s\n", result.ImportPath)
+	} else {
+		fmt.Printf("  Download: go get %s@%s\n", result.ImportPath, result.Version)
+	}
 }
